@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+     <name>Autocomplete + Quick Add + Reorder Button For Jornal Themes</name>
+     <version>1.0</version>
+     <code>000001</code>
+     <link>http://www.fiverr.com/newtonx</link>
+     <author>newtonx</author>
+
+
+    <file path="catalog/controller/checkout/cart.php">
+            <operation>
+                <search>
+                    <![CDATA[$json['redirect']]]></search>
+                <add position="replace"><![CDATA[//$json['redirect']]]></add>
+            </operation>
+        </file>
+    <file path="catalog/controller/journal2/search.php">
+            <operation>
+                <search>
+                    <![CDATA['special' => $special]]></search>
+                <add position="replace"><![CDATA[
+                'special' => $special,
+                'product_id' => $result['product_id']
+                ]]></add>
+            </operation>
+        </file>
+
+	<file path="catalog/view/theme/journal2/template/journal2/assets/js.tpl">
+                <operation info="Fix Autocomplete">
+                	<search trim="true"><![CDATA[Journal.searchAutoComplete();]]></search>
+                	<add position="replace"><![CDATA[
+
+  Journal.searchAutoCompleteCustom = function () {
+    $('#search input').autocomplete2({
+        appendTo: '.journal-search > div',
+        width: '100%',
+        serviceUrl: 'index.php?route=journal2/search',
+        deferRequestBy: 500,
+        paramName: 'search',
+        triggerSelectOnValidInput : false ,
+        onHide: function (container) { return false},
+        onSelect: function (suggestion) { return false},
+        transformResult: function (response) {
+            response = $.parseJSON(response);
+            var suggestions = $.map(response.results, function (dataItem) {
+                return { value: dataItem.name, data: dataItem, image: dataItem.image, price: dataItem.price, special: dataItem.special, url: dataItem.url };
+            });
+            if (response['view_more_url']) {
+                suggestions.push({
+                    view_more: true,
+                    value: response['view_more_text'],
+                    url: response['view_more_url']
+                });
+            } else {
+                suggestions.push({
+                    view_more: true,
+                    value: response['view_more_text'],
+                    url: response['view_more_url']
+                });
+            }
+            return {
+                suggestions: suggestions
+            };
+        },
+        formatResult: function (suggestion, currentValue) {
+            if (suggestion['view_more']) {
+                if (suggestion['url']) {
+                    return '<a class="view-more-link" href="' + suggestion['url'] + '">' + suggestion['value'] + '</a>';
+                } else {
+                    return '<a class="no-results">' + suggestion['value'] + '</a>';
+                }
+
+            } else {
+//                var reEscape = new RegExp('(\\' + ['/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\'].join('|\\') + ')', 'g'),
+//                    pattern = '(' + currentValue.replace(reEscape, '\\$1') + ')',
+//                    name = suggestion.value.replace(new RegExp(pattern, 'gi'), '<strong>$1<\/strong>');
+                var name = suggestion.value;
+                var html = '<div class="row"><div class="xs-50 sm-50 lg-50 xl-50"><a href="' + suggestion.url + '">';
+                if (suggestion.image) {
+                    html += '<span class="p-image xs-33 sm-33 md-33 lg-33 xl-33"><img src="' + suggestion.image + '" /></span>';
+                }
+                html += '<span class="p-name xs-66 sm-66 md-66 lg-66 xl-66"><span>' + name + '</span>';
+                if (suggestion.price) {
+                    if (suggestion.special) {
+                        html += '<span class="p-price xs-66 sm-66 md-66 lg-66 xl-66"><span class="price-old">' + suggestion.price + '</span><span class="price-new">' + suggestion.special + '</span></span>';
+                    } else {
+                        html += '<span class="p-price xs-66 sm-66 md-66 lg-66 xl-66">' + suggestion.price + '</span>';
+                    }
+                }
+                html += '</span>';
+                html += '<div class="clearfix"> </div>';
+                html += '</a></div>';
+                html += '<div class="xs-50 sm-50 lg-50 xl-50"><img src="image/catalog/slot.png" class="pull-left" style="margin-right:5px;height: 40px;" title="Delivery Date"><input type="number" value="1" id="suggestion_' + suggestion.data.product_id + '" size="2" data-min-value="1" class="form-control xs-33" style="width:40px!important;background:white;color:black;padding-left:0px;"><button onclick="if(event.preventDefault) event.preventDefault(); else event.returnValue = false; cart.add('+ suggestion.data.product_id + ', document.getElementById(\'suggestion_'+ suggestion.data.product_id + '\').value);setTimeout(function() { document.getElementsByName(\'search\')[0].value = \'\'; }, 2000)" class="button pull-right btn-sm">Add to Cart</button></div>';
+                html += '</div>';
+                return html;
+            }
+        }
+    });
+};
+
+
+Journal.searchAutoCompleteCustom();
+       		]]></add>
+                </operation>	      
+        </file>
+        <file path="catalog/view/theme/journal2/template/journal2/checkout/checkout.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<div class="checkout-content confirm-section">]]></search>
+                <add position="replace"><![CDATA[
+                    <div class="checkout-content confirm-section">
+                <h2 class="secondary-title">Select Delivery Time Slot</h2>
+                                <div id="timeslot">
+                                   
+                                    
+                                </div>
+                                <script>
+                                    $(function(){
+                                        $.ajax({
+                    url: 'index.php?route=module/timeslot/timeslot',
+                    dataType: 'html',
+                    success: function(html) {
+                        
+                        $('#timeslot').html(html);
+                        /* var slots = $('#slots');
+                        var get_slots = $('#get_slots');
+                        slots.on('change',function(){
+                            alert(get_slots.val());
+                            alert(slots.val());
+                        });
+                        get_slots.on('change',function(){
+                            alert(get_slots.val());
+                            alert(slots.val());
+                        }); */
+                       
+                        
+
+                        //$('#collapse-timeslot').parent().find('.panel-heading .panel-title').html('<a href="#collapse-timeslot" data-toggle="collapse" data-parent="#accordion" class="accordion-toggle">Step 5: Delivery Date and Time <i class="fa fa-caret-down"></i></a>');
+                                                 
+
+                        //$('#collapse-checkout-confirm').parent().find('.panel-heading .panel-title').html('Step 7: Confirm Order');
+                    },
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                    }
+                });
+                                    })
+                                    </script>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/default/template/module/timeslot/timeslot_collapse.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<input type="button" value="Continue" id="button-interval" data-loading-text="Loading..." class="btn btn-primary">]]></search>
+                <add position="replace"><![CDATA[
+                    <!--input type="button" value="Continue" id="button-interval" data-loading-text="Loading..." class="btn btn-primary"-->
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/controller/checkout/cart.php">
+            <operation>
+                <search>
+                    <![CDATA[public function edit() {]]></search>
+                <add position="before"><![CDATA[
+                    public function reorder(){
+                        $this->load->model('account/order');
+                        $order_id = @$_GET['order_id'];
+                        $products = $this->model_account_order->getOrderProducts($order_id);
+                        foreach($products as $product){
+                            $this->cart->add($product['product_id'], $product['quantity']);
+                        }
+                        $this->response->redirect($this->url->link('checkout/checkout', '', 'SSL'));
+                    }
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/account/order_list.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a href="<?php echo $order['href']; ?>" data-toggle="tooltip" title="<?php echo $button_view; ?>" class="btn btn-info btn-primary"><i class="fa fa-eye"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <a href="<?php echo $order['href']; ?>" data-toggle="tooltip" title="<?php echo $button_view; ?>" class="btn btn-info btn-primary"><i class="fa fa-eye"></i></a><a href="<?php echo $this->url->link('checkout/cart/reorder', 'order_id='. $order['order_id'], 'SSL'); ?>" data-toggle="tooltip" title="ReOrder" class="btn btn-info btn-primary">Reorder</a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/product/manufacturer_info.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/module/featured.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/product/category.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/product/product.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/journal2/module/carousel_product.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/journal2/module/custom_sections_product.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/journal2/module/side_products.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/module/bestseller.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/module/featured.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/module/latest.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/module/special.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<a onclick="addToCart('<?php echo $product['product_id']; ?>');" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>]]></search>
+                <add position="replace"><![CDATA[
+                    <input type="number" value="1" id="product_<?php echo $product['product_id']; ?>" size="2" data-min-value="1" class="form-control xs-33" style="width:40px;height:36px!important;background:white;color:black;padding-left:7px;border-radius: 7px;"><a onclick="addToCart('<?php echo $product['product_id']; ?>', document.getElementById('product_<?php echo $product['product_id']; ?>').value);" class="button hint--top" data-hint="<?php echo $button_cart; ?>"><i class="button-left-icon"></i><span class="button-cart-text"><?php echo $button_cart; ?></span><i class="button-right-icon"></i></a>
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/model/slot/timing.php">
+            <operation>
+                <search>
+                    <![CDATA[ echo "fulled"; ]]></search>
+                <add position="replace"><![CDATA[
+                        return "Slot is Filled";
+                ]]></add>
+            </operation>
+            <operation>
+                <search>
+                    <![CDATA[ echo "not fulled"; ]]></search>
+                <add position="replace"><![CDATA[
+                    return null;
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/controller/journal2/checkout.php">
+            <operation>
+                <search>
+                    <![CDATA[ $errors = array(); ]]></search>
+                <add position="replace"><![CDATA[
+                        $errors = array();
+                        $time_slot_date =  $_POST['delivery_slot_time'];
+            $time_slot_time =  $_POST['get_slot']; 
+           
+           
+           $expl = explode("-",$time_slot_time);
+           
+            
+            $time = $time_slot_date." ".$expl[0]." - ".$time_slot_date." ".$expl[1];
+           
+            
+            if(isset($time) && $time!==""):
+                
+                // check slots order count
+            $this->load->model('slot/timing');
+            $result = $this->model_slot_timing->countSlot($time);
+            if($result)
+                    $errors[] = array('message'=>'Timeslot is already Filled');
+                
+            endif;
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/default/template/module/timeslot/order.tpl">
+            <operation>
+                <search>
+                    <![CDATA[ <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/strict.dtd"> ]]></search>
+                <add position="replace"><![CDATA[
+                    <?php error_reporting(0);?>
+                    <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/strict.dtd">
+
+                ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/controller/checkout/success.php">
+            <operation>
+                <search>
+                    <![CDATA[$this->load->language('checkout/success');]]></search>
+                <add position="replace"><![CDATA[
+                    if ($this->session->data['payment_method']['code'] == 'cod') {
+			
+                        $this->load->model('module/deliveryTime/order');
+                        $this->model_module_deliveryTime_order->addDeliveryTime($this->session->data['order_id'],$this->session->data['delivery_time']);
+                        $this->model_module_deliveryTime_order->addOrderHistory($this->session->data['order_id'], $this->config->get('cod_order_status_id'));
+                       
+		}
+                    $this->load->language('checkout/success');
+                    ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/model/module/deliveryTime/order.php">
+            <operation>
+                <search>
+                    <![CDATA[foreach ($order_query->rows as $order_time)]]></search>
+                <add position="replace"><![CDATA[
+                    $data = null;
+                    foreach ($order_query->rows as $order_time)
+                    ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/account/order_list.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<td class="text-left"><?php echo $order['date_added']; ?></td>]]></search>
+                <add position="replace"><![CDATA[
+                    <td class="text-left" data-toggle="tooltip" title="Delivery
+                     <?php
+              
+            $this->load->model('module/deliveryTime/order');
+                                
+            $delivery_time = $this->model_module_deliveryTime_order->getDeliveryTime($order['order_id']);    	
+              echo $delivery_time;
+              ?>">
+                    <?php echo $order['date_added']; ?>
+</td>
+                    ]]></add>
+            </operation>
+        </file>
+        <file path="admin/view/template/sale/order_info.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<?php foreach ($shipping_custom_fields as $custom_field) { ?>]]></search>
+                <add position="replace"><![CDATA[
+             <tr>
+                <td>Delivery Timeslot</td>
+                <td><?php
+              
+            $order_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "delivery_time WHERE order_id = '" . (int)$order_id . "'");  
+          foreach ($order_query->rows as $order_time)
+              {
+					
+              $data = $order_time['delivery_time'];
+              
+              }
+          
+
+                                
+            $delivery_time = $data;    	
+              echo $delivery_time;
+              ?></td>
+              </tr>
+                    <?php foreach ($shipping_custom_fields as $custom_field) { ?>
+                    ]]></add>
+            </operation>
+        </file>
+        <file path="catalog/view/theme/journal2/template/account/order_info.tpl">
+            <operation>
+                <search>
+                    <![CDATA[<?php if ($shipping_method) { ?>]]></search>
+                <add position="replace"><![CDATA[
+                    <b>Delivery Slot:</b> <?php $this->load->model('module/deliveryTime/order');
+                                
+            $delivery_time = $this->model_module_deliveryTime_order->getDeliveryTime($order_id);    	
+              echo $delivery_time; ?><br />
+                    <?php if ($shipping_method) { ?>
+                    ]]></add>
+            </operation>
+        </file>
+        
+       
+        
+
+
+
+
+
+   
+   
+   
+   
+   
+   
+
+</modification>
